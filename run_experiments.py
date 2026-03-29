@@ -11,7 +11,6 @@ from typing import Callable
 import matplotlib.pyplot as plt
 
 
-AlgorithmFn = Callable[[list[int]], list[int]]
 NOISE_LEVEL_BY_EXPERIMENT = {1: 0.05, 2: 0.20}
 ALGORITHM_NAMES = {3: "Insertion Sort", 4: "Merge Sort", 5: "Quick Sort"}
 QUADRATIC_ALGORITHMS = {3}
@@ -23,7 +22,7 @@ DEFAULT_RANDOM_SEED = 42
 class AlgorithmConfig:
     algorithm_id: int
     name: str
-    sort_fn: AlgorithmFn
+    sort_fn: Callable[[list[int]], list[int]]
 
 
 @dataclass(frozen=True)
@@ -145,7 +144,7 @@ def validate_args(args: argparse.Namespace) -> None:
 
 
 def resolve_algorithms(algorithm_ids: list[int]) -> list[AlgorithmConfig]:
-    available: dict[int, AlgorithmFn] = {
+    available: dict[int, Callable[[list[int]], list[int]]] = {
         3: insertion_sort,
         4: merge_sort,
         5: quick_sort,
