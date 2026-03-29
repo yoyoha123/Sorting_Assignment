@@ -13,8 +13,8 @@ import matplotlib.pyplot as plt
 
 AlgorithmFn = Callable[[list[int]], list[int]]
 NOISE_LEVEL_BY_EXPERIMENT = {1: 0.05, 2: 0.20}
-ALGORITHM_NAMES = {1: "Bubble Sort", 2: "Selection Sort", 3: "Insertion Sort", 4: "Merge Sort", 5: "Quick Sort"}
-QUADRATIC_ALGORITHMS = {1, 2, 3}
+ALGORITHM_NAMES = {3: "Insertion Sort", 4: "Merge Sort", 5: "Quick Sort"}
+QUADRATIC_ALGORITHMS = {3}
 MAX_QUADRATIC_SIZE = 50_000
 DEFAULT_RANDOM_SEED = 42
 
@@ -43,32 +43,6 @@ def insertion_sort(values: list[int]) -> list[int]:
             arr[j + 1] = arr[j]
             j -= 1
         arr[j + 1] = current
-    return arr
-
-
-def bubble_sort(values: list[int]) -> list[int]:
-    arr = values.copy()
-    n = len(arr)
-    for i in range(n):
-        swapped = False
-        for j in range(0, n - i - 1):
-            if arr[j] > arr[j + 1]:
-                arr[j], arr[j + 1] = arr[j + 1], arr[j]
-                swapped = True
-        if not swapped:
-            break
-    return arr
-
-
-def selection_sort(values: list[int]) -> list[int]:
-    arr = values.copy()
-    n = len(arr)
-    for i in range(n):
-        min_idx = i
-        for j in range(i + 1, n):
-            if arr[j] < arr[min_idx]:
-                min_idx = j
-        arr[i], arr[min_idx] = arr[min_idx], arr[i]
     return arr
 
 
@@ -159,7 +133,7 @@ def validate_args(args: argparse.Namespace) -> None:
         raise ValueError("Please provide exactly 3 algorithms using -a.")
     invalid_algorithms = [algorithm_id for algorithm_id in args.algorithms if algorithm_id not in ALGORITHM_NAMES]
     if invalid_algorithms:
-        raise ValueError(f"Invalid algorithm IDs: {invalid_algorithms}. Allowed IDs are 1..5.")
+        raise ValueError(f"Invalid algorithm IDs: {invalid_algorithms}. Allowed IDs are 3, 4, 5.")
     if len(set(args.algorithms)) != len(args.algorithms):
         raise ValueError("Algorithm IDs must be unique.")
     if not args.sizes:
@@ -172,8 +146,6 @@ def validate_args(args: argparse.Namespace) -> None:
 
 def resolve_algorithms(algorithm_ids: list[int]) -> list[AlgorithmConfig]:
     available: dict[int, AlgorithmFn] = {
-        1: bubble_sort,
-        2: selection_sort,
         3: insertion_sort,
         4: merge_sort,
         5: quick_sort,
@@ -181,7 +153,7 @@ def resolve_algorithms(algorithm_ids: list[int]) -> list[AlgorithmConfig]:
     missing = [algorithm_id for algorithm_id in algorithm_ids if algorithm_id not in available]
     if missing:
         unsupported_names = [ALGORITHM_NAMES.get(algorithm_id, str(algorithm_id)) for algorithm_id in missing]
-        raise ValueError(f"Unsupported selections: {unsupported_names}.")
+        raise ValueError(f"Unsupported selections: {unsupported_names}. Use IDs 3, 4, 5.")
     return [
         AlgorithmConfig(algorithm_id=algorithm_id, name=ALGORITHM_NAMES[algorithm_id], sort_fn=available[algorithm_id])
         for algorithm_id in algorithm_ids
@@ -204,19 +176,6 @@ def generate_nearly_sorted_array(size: int, noise_fraction: float, rng: Random) 
         j = rng.randrange(size)
         arr[i], arr[j] = arr[j], arr[i]
     return arr
-
-
-def measure_runtime(sort_fn: AlgorithmFn, arr: list[int], repetitions: int) -> tuple[float, float]:
-    runs: list[float] = []
-    for _ in range(repetitions):
-        trial_data = arr.copy()
-        start = time.perf_counter()
-        sort_fn(trial_data)
-        elapsed = time.perf_counter() - start
-        runs.append(elapsed)
-    mean_seconds = statistics.fmean(runs)
-    std_seconds = statistics.stdev(runs) if len(runs) > 1 else 0.0
-    return mean_seconds, std_seconds
 
 
 def run_experiment(

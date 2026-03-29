@@ -14,7 +14,7 @@ Example command from the assignment:
 `py run_experiments.py -a 3 4 5 -s 100 500 3000 -e 1 -r 20`
 
 CLI arguments:
-- `-a`: exactly 3 algorithm IDs to compare (supported IDs: `1..5`)
+- `-a`: exactly 3 algorithm IDs to compare (supported IDs: `3`, `4`, `5`)
 - `-s`: array sizes
 - `-e`: nearly-sorted experiment type (`1` = 5% noise, `2` = 20% noise)
 - `-r`: repetitions per size
