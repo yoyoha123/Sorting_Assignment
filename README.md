@@ -1,6 +1,6 @@
 # Sorting_Assignment
 
-## Student Name(s)
+## Student Name:
 - Yoav Hamburger
 
 ## Selected Algorithms
