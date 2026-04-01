@@ -25,6 +25,9 @@ MAX_INSERTION_SORT_SIZE = 20_000
 NOT_IMPLEMENTED_IDS = frozenset({1, 2})
 DEFAULT_RANDOM_SEED = 42
 DEFAULT_SIZES = [
+    100,
+    500,
+    1_000,
     5_000,
     10_000,
     20_000,
@@ -251,36 +254,77 @@ def run_experiment(
 
 
 def plot_results(metrics: dict[str, list[Measurement]], output_path: str, title: str) -> None:
-    plt.figure(figsize=(10, 6))
+    plt.figure(figsize=(11, 6.5))
     prop_cycle = plt.rcParams["axes.prop_cycle"].by_key().get("color", ["#1f77b4", "#ff7f0e", "#2ca02c"])
     all_sizes: list[int] = []
-    for idx, (name, measurements) in enumerate(metrics.items()):
+    series_index = 0
+    for _, (name, measurements) in enumerate(metrics.items()):
         active = [m for m in measurements if not m.skipped and not math.isnan(m.mean_seconds)]
         if not active:
             continue
-        color = prop_cycle[idx % len(prop_cycle)]
+        color = prop_cycle[series_index % len(prop_cycle)]
+        series_index += 1
         x = [m.size for m in active]
         all_sizes.extend(x)
         y = [m.mean_seconds for m in active]
         yerr = [0.0 if math.isnan(m.std_seconds) else m.std_seconds for m in active]
-        lower = [max(0.0, yi - ei) for yi, ei in zip(y, yerr)]
-        upper = [yi + ei for yi, ei in zip(y, yerr)]
-        plt.fill_between(x, lower, upper, alpha=0.25, color=color)
-        plt.plot(x, y, marker="o", markersize=8, label=name, color=color)
-        if any(e > 0 for e in yerr):
-            plt.errorbar(x, y, yerr=yerr, fmt="none", capsize=3, alpha=0.65, linewidth=1, color=color, ecolor=color)
+        if len(x) == 1:
+            if yerr[0] > 0:
+                plt.errorbar(
+                    x[0],
+                    y[0],
+                    yerr=yerr[0],
+                    fmt="none",
+                    color=color,
+                    ecolor=color,
+                    capsize=6,
+                    capthick=2,
+                    elinewidth=2,
+                    zorder=4,
+                )
+            plt.scatter(
+                x,
+                y,
+                s=320,
+                marker="D",
+                c=color,
+                edgecolors="black",
+                linewidths=2.0,
+                label=f"{name} (single point)",
+                zorder=5,
+            )
+        else:
+            lower = [max(0.0, yi - ei) for yi, ei in zip(y, yerr)]
+            upper = [yi + ei for yi, ei in zip(y, yerr)]
+            plt.fill_between(x, lower, upper, alpha=0.25, color=color)
+            plt.plot(x, y, marker="o", markersize=8, label=name, color=color, linewidth=2)
+            if any(e > 0 for e in yerr):
+                plt.errorbar(
+                    x,
+                    y,
+                    yerr=yerr,
+                    fmt="none",
+                    capsize=4,
+                    alpha=0.75,
+                    linewidth=1.2,
+                    color=color,
+                    ecolor=color,
+                )
+    ax = plt.gca()
     if all_sizes:
         lo, hi = min(all_sizes), max(all_sizes)
-        if lo > 0 and hi / lo >= 2:
+        if lo > 0:
             plt.xscale("log")
-            plt.xlim(lo * 0.85, hi * 1.15)
-        else:
-            plt.xlim(0.0, hi * 1.05 if hi > 0 else 1.0)
+            if lo == hi:
+                plt.xlim(lo * 0.75, hi * 1.35)
+            else:
+                plt.xlim(lo * 0.85, hi * 1.12)
     plt.xlabel("Array Size (n)")
     plt.ylabel("Running Time (seconds)")
     plt.title(title)
-    plt.legend()
-    plt.grid(True, which="both", alpha=0.25)
+    plt.legend(loc="best", framealpha=0.95, fontsize=10)
+    ax.grid(True, which="major", linestyle="-", alpha=0.45)
+    ax.grid(True, which="minor", linestyle=":", alpha=0.22)
     plt.tight_layout()
     plt.savefig(output_path, dpi=150)
     plt.close()
