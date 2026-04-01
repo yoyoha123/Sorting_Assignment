@@ -9,7 +9,7 @@ Per the assignment list, this submission implements and compares:
 - **4** – Merge Sort  
 - **5** – Quick Sort  
 
-(The course handout maps IDs 1–5 to Bubble, Selection, Insertion, Merge, and Quick; only the three above are implemented here.)
+The course table lists IDs **1–5** (Bubble, Selection, Insertion, Merge, Quick). This code implements **Insertion, Merge, and Quick** (3–5). If you pass **1** or **2**, the program prints **Not implemented** and continues with the remaining IDs.
 
 ## How To Run
 
@@ -24,10 +24,12 @@ Assignment-style example with explicit sizes (must include large `n` if you want
 If you use only small sizes (e.g. `-s 100 500 1000`), the plot will only span that range.
 
 CLI:
-- **`-a`** – exactly three algorithm IDs (here: `3`, `4`, `5`)
+- **`-a`** – exactly three IDs from **1–5** (unimplemented **1–2** are skipped with a warning)
 - **`-s`** – array sizes (optional; default starts at **5,000** and goes up to **1,000,000**)
-- **`-e`** – `1` = nearly sorted with **5%** random swaps, `2` = **20%**
+- **`-e`** – `1` = nearly sorted with **5%** of positions perturbed, `2` = **20%** (shuffle within a sampled index set)
 - **`-r`** – repetitions per size
+
+**Insertion Sort** is not run for **n > 20,000** (warning + skipped point) so huge sizes do not hang.
 
 Outputs: **`result1.png`** (random arrays), **`result2.png`** (nearly sorted with noise).
 
