@@ -228,11 +228,13 @@ def run_experiment(
 def plot_results(metrics: dict[str, list[Measurement]], output_path: str, title: str) -> None:
     plt.figure(figsize=(10, 6))
     prop_cycle = plt.rcParams["axes.prop_cycle"].by_key().get("color", ["#1f77b4", "#ff7f0e", "#2ca02c"])
+    all_sizes: list[int] = []
     for idx, (name, measurements) in enumerate(metrics.items()):
         if not measurements:
             continue
         color = prop_cycle[idx % len(prop_cycle)]
         x = [m.size for m in measurements]
+        all_sizes.extend(x)
         y = [m.mean_seconds for m in measurements]
         yerr = [0.0 if math.isnan(m.std_seconds) else m.std_seconds for m in measurements]
         lower = [max(0.0, yi - ei) for yi, ei in zip(y, yerr)]
@@ -241,11 +243,18 @@ def plot_results(metrics: dict[str, list[Measurement]], output_path: str, title:
         plt.plot(x, y, marker="o", markersize=8, label=name, color=color)
         if any(e > 0 for e in yerr):
             plt.errorbar(x, y, yerr=yerr, fmt="none", capsize=3, alpha=0.65, linewidth=1, color=color, ecolor=color)
+    if all_sizes:
+        lo, hi = min(all_sizes), max(all_sizes)
+        if lo > 0 and hi / lo >= 2:
+            plt.xscale("log")
+            plt.xlim(lo * 0.85, hi * 1.15)
+        else:
+            plt.xlim(0.0, hi * 1.05 if hi > 0 else 1.0)
     plt.xlabel("Array Size (n)")
     plt.ylabel("Running Time (seconds)")
     plt.title(title)
     plt.legend()
-    plt.grid(True, alpha=0.25)
+    plt.grid(True, which="both", alpha=0.25)
     plt.tight_layout()
     plt.savefig(output_path, dpi=150)
     plt.close()

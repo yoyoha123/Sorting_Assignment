@@ -13,15 +13,15 @@ Per the assignment list, this submission implements and compares:
 
 ## How To Run
 
-Assignment example (use `py` on Windows if `python` is not on your PATH):
+Recommended (uses built-in sizes **5,000 … 1,000,000** — omit `-s` so the x-axis is not stuck on small `n`):
 
-`python run_experiments.py -a 3 4 5 -s 100 500 3000 -e 1 -r 20`
+`py run_experiments.py -a 3 4 5 -e 1 -r 10`
 
-This submission’s algorithm choice:
+Assignment-style example with explicit sizes (must include large `n` if you want a wide x-axis):
 
-`py run_experiments.py -a 3 4 5 -s 100 500 3000 -e 1 -r 20`
+`python run_experiments.py -a 3 4 5 -s 5000 10000 50000 100000 -e 1 -r 20`
 
-If you omit `-s`, the script uses default sizes from **5,000** up to **1,000,000** (larger `n` so the curve shows growth clearly).
+If you use only small sizes (e.g. `-s 100 500 1000`), the plot will only span that range.
 
 CLI:
 - **`-a`** – exactly three algorithm IDs (here: `3`, `4`, `5`)
