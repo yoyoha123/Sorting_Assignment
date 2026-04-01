@@ -13,9 +13,17 @@ import matplotlib.pyplot as plt
 
 NOISE_LEVEL_BY_EXPERIMENT = {1: 0.05, 2: 0.20}
 ALGORITHM_NAMES = {3: "Insertion Sort", 4: "Merge Sort", 5: "Quick Sort"}
-QUADRATIC_ALGORITHMS = {3}
-MAX_QUADRATIC_SIZE = 50_000
 DEFAULT_RANDOM_SEED = 42
+DEFAULT_SIZES = [
+    5_000,
+    10_000,
+    20_000,
+    50_000,
+    100_000,
+    250_000,
+    500_000,
+    1_000_000,
+]
 
 
 @dataclass(frozen=True)
@@ -30,7 +38,6 @@ class Measurement:
     size: int
     mean_seconds: float
     std_seconds: float
-    skipped: bool = False
 
 
 def insertion_sort(values: list[int]) -> list[int]:
@@ -111,9 +118,29 @@ def quick_sort(values: list[int]) -> list[int]:
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Run sorting algorithm experiments and create required plots.")
-    parser.add_argument("-a", "--algorithms", nargs="+", type=int, required=True, help="Algorithm IDs to compare.")
-    parser.add_argument("-s", "--sizes", nargs="+", type=int, required=True, help="Array sizes to evaluate.")
+    parser = argparse.ArgumentParser(
+        description="Run sorting algorithm experiments and create required plots.",
+        epilog=(
+            "Course algorithm IDs: 1=Bubble, 2=Selection, 3=Insertion, 4=Merge, 5=Quick. "
+            "This file implements 3, 4, 5 only; use e.g. -a 3 4 5."
+        ),
+    )
+    parser.add_argument(
+        "-a",
+        "--algorithms",
+        nargs="+",
+        type=int,
+        required=True,
+        help="Exactly three algorithm IDs for this submission: 3=Insertion, 4=Merge, 5=Quick (course table 1-5; see README).",
+    )
+    parser.add_argument(
+        "-s",
+        "--sizes",
+        nargs="*",
+        type=int,
+        default=None,
+        help=f"Array sizes (default: {DEFAULT_SIZES}).",
+    )
     parser.add_argument(
         "-e",
         "--experiment",
@@ -135,9 +162,10 @@ def validate_args(args: argparse.Namespace) -> None:
         raise ValueError(f"Invalid algorithm IDs: {invalid_algorithms}. Allowed IDs are 3, 4, 5.")
     if len(set(args.algorithms)) != len(args.algorithms):
         raise ValueError("Algorithm IDs must be unique.")
-    if not args.sizes:
-        raise ValueError("Please provide at least one size with -s.")
-    if any(size <= 0 for size in args.sizes):
+    sizes = args.sizes if args.sizes else DEFAULT_SIZES
+    if not sizes:
+        raise ValueError("Array sizes list is empty.")
+    if any(size <= 0 for size in sizes):
         raise ValueError("All array sizes must be positive integers.")
     if args.repetitions <= 0:
         raise ValueError("Repetitions must be a positive integer.")
@@ -159,17 +187,13 @@ def resolve_algorithms(algorithm_ids: list[int]) -> list[AlgorithmConfig]:
     ]
 
 
-def should_skip_size(algorithm_id: int, size: int) -> bool:
-    return algorithm_id in QUADRATIC_ALGORITHMS and size > MAX_QUADRATIC_SIZE
-
-
 def generate_random_array(size: int, rng: Random) -> list[int]:
     return [rng.randint(0, 1_000_000) for _ in range(size)]
 
 
 def generate_nearly_sorted_array(size: int, noise_fraction: float, rng: Random) -> list[int]:
     arr = list(range(size))
-    swap_count = max(1, int(size * noise_fraction))
+    swap_count = max(1, round(size * noise_fraction))
     for _ in range(swap_count):
         i = rng.randrange(size)
         j = rng.randrange(size)
@@ -187,9 +211,6 @@ def run_experiment(
     metrics: dict[str, list[Measurement]] = {algorithm.name: [] for algorithm in algorithms}
     for size in sizes:
         for algorithm in algorithms:
-            if should_skip_size(algorithm.algorithm_id, size):
-                metrics[algorithm.name].append(Measurement(size=size, mean_seconds=math.nan, std_seconds=math.nan, skipped=True))
-                continue
             runs: list[float] = []
             for rep_idx in range(repetitions):
                 rng = Random(seed + (size * 10_000) + rep_idx)
@@ -206,13 +227,20 @@ def run_experiment(
 
 def plot_results(metrics: dict[str, list[Measurement]], output_path: str, title: str) -> None:
     plt.figure(figsize=(10, 6))
-    for name, measurements in metrics.items():
+    prop_cycle = plt.rcParams["axes.prop_cycle"].by_key().get("color", ["#1f77b4", "#ff7f0e", "#2ca02c"])
+    for idx, (name, measurements) in enumerate(metrics.items()):
+        if not measurements:
+            continue
+        color = prop_cycle[idx % len(prop_cycle)]
         x = [m.size for m in measurements]
         y = [m.mean_seconds for m in measurements]
         yerr = [0.0 if math.isnan(m.std_seconds) else m.std_seconds for m in measurements]
-        plt.plot(x, y, marker="o", label=name)
-        if any(not math.isnan(v) and v > 0 for v in yerr):
-            plt.errorbar(x, y, yerr=yerr, fmt="none", capsize=3, alpha=0.6)
+        lower = [max(0.0, yi - ei) for yi, ei in zip(y, yerr)]
+        upper = [yi + ei for yi, ei in zip(y, yerr)]
+        plt.fill_between(x, lower, upper, alpha=0.25, color=color)
+        plt.plot(x, y, marker="o", markersize=8, label=name, color=color)
+        if any(e > 0 for e in yerr):
+            plt.errorbar(x, y, yerr=yerr, fmt="none", capsize=3, alpha=0.65, linewidth=1, color=color, ecolor=color)
     plt.xlabel("Array Size (n)")
     plt.ylabel("Running Time (seconds)")
     plt.title(title)
@@ -228,9 +256,6 @@ def print_summary(metrics: dict[str, list[Measurement]]) -> None:
     for name, measurements in metrics.items():
         print(f"\n{name}")
         for measurement in measurements:
-            if measurement.skipped:
-                print(f"  n={measurement.size:<8} skipped (adaptive cap)")
-                continue
             print(f"  n={measurement.size:<8} {measurement.mean_seconds:.6f} +/- {measurement.std_seconds:.6f}")
 
 
@@ -238,7 +263,7 @@ def main() -> None:
     args = parse_args()
     validate_args(args)
     algorithms = resolve_algorithms(args.algorithms)
-    sizes = sorted(args.sizes)
+    sizes = sorted(args.sizes if args.sizes else DEFAULT_SIZES)
     noise_fraction = NOISE_LEVEL_BY_EXPERIMENT[args.experiment]
 
     random_metrics = run_experiment(
